@@ -91,7 +91,7 @@
             <p id="active-sentence" class="text-xl font-bold text-gray-800 mb-4 break-words">Context Sentence</p>
             
             <!-- 질문 텍스트: 밑줄(_______) 대신 HTML <span> 태그를 사용하여 밑줄 시각화 -->
-            <p id="question-text" class="text-lg text-gray-700 mb-4 break-words">Question: It is important (_______) a dictionary when learning a new language.</p>
+            <p id="question-text" class="text-lg text-gray-700 mb-4 break-words">Question: The problem statement will load here (_______) ...</p>
             
             <!-- 주관식 입력 필드 (객관식이 디폴트이므로 기본 숨김) -->
             <input type="text" id="user-answer" placeholder="여기에 정답을 입력하세요 (예: for me to go, to have been)" 
@@ -143,7 +143,7 @@
     </div>
 
     <script>
-        // 문제 데이터: 총 20개 문제 풀 (To부정사의 의미상 주어와 시제)
+        // 문제 데이터: 총 21개 문제 풀 (To부정사의 의미상 주어와 시제)
         const masterQuizData = [
             // --- 의미상 주어 (for/of) 문제 ---
             {
@@ -189,11 +189,11 @@
                 options: ["for you to", "of you to", "you to", "to you to"]
             },
             {
-                active: "They need to be on time to catch the train.",
-                question: "It is necessary (_______) arrive early to catch the train.",
-                answer: "for them to",
-                explanation: "일반적인 필요성(necessary)을 나타내므로 'for + 목적격'을 사용합니다.",
-                options: ["for them to", "of them to", "them to", "to them to"]
+                active: "If you want to understand the material, using a reference book is key.",
+                question: "It is important (_______) a dictionary when learning a new language.",
+                answer: "for us to use",
+                explanation: "일반적인 행위의 의미상 주어를 나타낼 때는 'for + 목적격'을 사용합니다. 일반적인 주어('우리'/'모두')를 포함하여 'for us to use' 또는 'to use' 모두 가능하나, 여기서는 구조를 테스트하기 위해 'for us to use'를 정답으로 합니다.",
+                options: ["for us to use", "of us to use", "to use", "using"]
             },
             {
                 active: "She immediately apologized after the mistake, showing good manners.",
@@ -275,7 +275,7 @@
                 options: ["of us to understand", "for us to understand", "to understand", "us to understand"]
             },
             {
-                active: "We look around and it seems we are waiting for the bus now.",
+                active: "It appears that we are waiting for the bus now.",
                 question: "We appear (_______) for the bus.",
                 answer: "to be waiting",
                 explanation: "주절 시제(appear, 현재)와 to부정사절의 시제(is waiting, 현재진행)가 동시에 진행 중임을 나타내므로 단순 진행 to부정사 'to be waiting'을 사용합니다.",
@@ -414,9 +414,15 @@
                 multipleChoiceArea.classList.add('hidden');
                 userAnswerEl.focus();
             } else {
+                // 옵션이 유효한 배열인지 확인하고 렌더링 시도
                 userAnswerEl.classList.add('hidden');
                 multipleChoiceArea.classList.remove('hidden');
-                renderMultipleChoice(currentQuestion.options);
+                if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+                    renderMultipleChoice(currentQuestion.options);
+                } else {
+                    console.error("Error: Options array is missing or empty for the current question.");
+                    multipleChoiceArea.innerHTML = '<p class="text-red-500">객관식 보기를 불러올 수 없습니다. (데이터 오류)</p>';
+                }
             }
 
             if (!isModeChange) {
@@ -528,3 +534,118 @@
                         }
                     });
                 }
+            }
+        }
+
+        // 다음 문제로 이동
+        function moveToNext() {
+            if (!isAnswerChecked) {
+                feedbackMessageEl.textContent = '먼저 정답을 확인하세요.';
+                return;
+            }
+            
+            userAnswerEl.classList.remove('border-green-500', 'border-red-500');
+            userAnswerEl.classList.add('border-indigo-300');
+
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // 결과 표시 함수
+        function showResults() {
+            questionArea.classList.add('hidden');
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            feedbackMessageEl.classList.add('hidden');
+            progressText.classList.add('hidden');
+            modeToggleBtn.classList.add('hidden');
+            
+            // 결과 화면 관련 버튼 표시
+            restartBtn.classList.remove('hidden');
+            newQuizBtn.classList.remove('hidden'); 
+            printBtn.classList.remove('hidden'); 
+
+            const total = currentQuizSet.length;
+            finalScoreEl.textContent = `총 ${total}문제 중 ${score}점 획득하셨습니다! (${(score / total * 100).toFixed(0)}%)`;
+
+            // 틀린 문제 목록 생성 및 표시
+            missedQuestionsContainer.innerHTML = '';
+            if (incorrectAnswers.length > 0) {
+                let listHtml = '<h3 class="text-xl font-bold text-gray-800 mt-8 mb-4 border-t pt-4 border-indigo-200">틀린 문제 복습</h3>';
+                
+                incorrectAnswers.forEach((item, index) => {
+                    // 밑줄을 시각화하고 정답 자리에는 정답 표시 (인디고 600)
+                    const questionTextDisplay = item.question.replace('(_______)', `<span class="text-indigo-600 font-extrabold underline">${item.answer}</span>`);
+                    
+                    listHtml += `
+                        <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+                            <p class="font-bold text-base mb-1 text-gray-800">문제 ${index + 1}. (원문): ${item.active}</p>
+                            <p class="mb-2 text-gray-600">질문: ${questionTextDisplay}</p>
+                            <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
+                            <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
+                        </div>
+                    `;
+                });
+                missedQuestionsContainer.innerHTML = listHtml;
+            } else {
+                 missedQuestionsContainer.innerHTML = '<p class="text-lg text-green-700 mt-4 font-semibold text-center py-4">🎉 모든 문제를 맞추셨습니다! 대단해요!</p>';
+            }
+
+            resultArea.classList.remove('hidden');
+        }
+
+        // 퀴즈 재시작 함수 (동일 문제 세트로)
+        function restartQuiz() {
+            startNewQuiz(false);
+        }
+        
+        // 신규 문제 풀기 함수 (새로운 문제 세트로)
+        function startNewSetQuiz() {
+            startNewQuiz(true);
+        }
+
+        // 인쇄 기능
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+
+        // 이벤트 리스너 등록
+        submitBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', moveToNext);
+        restartBtn.addEventListener('click', restartQuiz); // '다시 풀기'
+        newQuizBtn.addEventListener('click', startNewSetQuiz); // '문제 더 풀기 (랜덤)'
+        modeToggleBtn.addEventListener('click', toggleQuizMode);
+        
+        // Enter 키 로직: '다음 문제' 버튼의 표시 여부와 현재 포커스에 따라 동작 분리
+        document.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                
+                // 3. 최종 결과 화면일 때 -> '다시 풀기'로 동작
+                if (currentQuestionIndex >= currentQuizSet.length && resultArea.classList.contains('hidden') === false) {
+                     restartBtn.click(); // '다시 풀기' 버튼 클릭 동작
+                     return;
+                }
+                
+                // 1. '다음 문제' 버튼이 숨겨져 있다면 (아직 정답 확인 전) -> 정답 확인
+                if (nextBtn.classList.contains('hidden')) {
+                    // 주관식: 입력 필드에 포커스가 있고 내용이 있을 때
+                    if (quizMode === 'subjective' && document.activeElement === userAnswerEl && userAnswerEl.value.trim() !== '') {
+                        checkAnswer();
+                    } 
+                    // 객관식: 옵션 중 하나가 선택되었을 때
+                    else if (quizMode === 'objective' && document.querySelector('input[name="quiz-option"]:checked')) {
+                        checkAnswer();
+                    }
+                } 
+                // 2. '다음 문제' 버튼이 보인다면 (정답 확인 후) -> 다음 문제로 이동
+                else {
+                    moveToNext();  
+                }
+            }
+        });
+
+        // 퀴즈 초기 로드 (새로운 문제 세트로 시작)
+        window.onload = () => startNewQuiz(true);
+    </script>
+</body>
+</html>
