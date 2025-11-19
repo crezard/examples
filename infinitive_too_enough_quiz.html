@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Too/Enough 구문 퀴즈</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 사용 설정 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 밝은 회색 배경 */
+        }
+        .quiz-container {
+            max-width: 640px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom style for the underline effect using border-bottom */
+        .question-text-line {
+            display: inline-block;
+            border-bottom: 2px solid #3b82f6; /* Indigo color for underline */
+            padding-bottom: 2px;
+            line-height: 1.25;
+            min-width: 150px; /* Minimum width for the blank */
+            text-align: center;
+        }
+
+        /* 인쇄용 CSS 설정 */
+        @media print {
+            body {
+                background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .quiz-container {
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            /* 인쇄 시 숨길 요소 */
+            #mode-toggle-btn, #progress-text, #question-area, #submit-btn, #next-btn, #feedback-message, #restart-btn, #new-quiz-btn, #print-btn, .flex.justify-between.items-center.gap-4 {
+                display: none !important;
+            }
+            /* 결과 영역을 깨끗하게 표시 */
+            #result-area {
+                display: block !important;
+                background-color: white !important;
+                border: none !important;
+                color: black !important;
+                padding: 0 !important;
+                margin-top: 0 !important;
+            }
+            #result-area p, #result-area h3 {
+                color: black !important;
+            }
+            /* 틀린 문제 복습 부분의 배경색을 회색으로 (인쇄용) */
+            #missed-questions-container .bg-gray-50 {
+                background-color: #eeeeee !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            #missed-questions-container .text-red-700, #missed-questions-container .text-green-700 {
+                color: #333 !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="quiz-app" class="quiz-container">
+        <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-6 border-b pb-3">Too/Enough 구문 퀴즈 (10문제)</h1>
+
+        <!-- 모드 선택 및 진행 상황 표시 -->
+        <div class="flex justify-between items-center mb-4">
+             <button id="mode-toggle-btn" class="py-2 px-4 text-sm bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition duration-150">
+                현재: 객관식 (변경: 주관식으로 보기)
+            </button>
+            <span id="progress-text" class="text-lg font-semibold text-gray-600">문제 1 / 10</span>
+        </div>
+
+        <!-- 문제 영역 -->
+        <div id="question-area" class="bg-indigo-50 p-6 rounded-lg mb-6">
+            <p class="text-sm text-indigo-600 mb-2">다음 문장을 읽고, 밑줄에 들어갈 **올바른 Too/Enough 구문**을 영문으로 완성하세요.</p>
+            <p id="active-sentence" class="text-xl font-bold text-gray-800 mb-4 break-words">Context Sentence</p>
+            
+            <!-- 질문 텍스트: 밑줄(_______) 대신 HTML <span> 태그를 사용하여 밑줄 시각화 -->
+            <p id="question-text" class="text-lg text-gray-700 mb-4 break-words">Question: The problem statement will load here (_______) ...</p>
+            
+            <!-- 주관식 입력 필드 (객관식이 디폴트이므로 기본 숨김) -->
+            <input type="text" id="user-answer" placeholder="여기에 정답을 입력하세요 (예: too hard to, strong enough to)" 
+                   class="w-full p-3 border-2 border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out hidden">
+
+            <!-- 객관식 옵션 영역 -->
+            <div id="multiple-choice-area" class="mt-4 flex flex-col space-y-3">
+                <!-- Radio buttons will be inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- 피드백 및 버튼 영역 -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div id="feedback-message" class="text-lg font-medium w-full sm:w-2/3 min-h-[1.5rem]"></div>
+            
+            <button id="submit-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out">
+                정답 확인
+            </button>
+            <button id="next-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-300 ease-in-out hidden" disabled>
+                다음 문제
+            </button>
+            <!-- 퀴즈 진행 중에는 숨기고, 결과 화면에서 표시 -->
+            <button id="restart-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition duration-300 ease-in-out hidden">
+                다시 풀기
+            </button>
+        </div>
+
+        <!-- 최종 점수 영역 (디자인 변경됨) -->
+        <div id="result-area" class="mt-8 p-6 bg-white border-2 border-indigo-300 rounded-xl shadow-lg hidden">
+            <p class="text-xl font-bold mb-2 text-indigo-700 border-b pb-2">퀴즈 결과</p>
+            <p id="final-score" class="text-4xl font-extrabold text-indigo-800 my-4 text-center"></p>
+            <!-- 틀린 문제 목록 표시 영역 -->
+            <div id="missed-questions-container"></div>
+            <!-- 버튼 그룹 -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                <button id="new-quiz-btn" class="w-full py-3 px-4 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 ease-in-out hidden">
+                    문제 더 풀기 (랜덤)
+                </button>
+                <!-- 인쇄 버튼 -->
+                <button id="print-btn" class="w-full py-3 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-300 ease-in-out hidden">
+                    결과 인쇄하기
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // 문제 데이터: 총 20개 문제 풀 (Too/Enough 구문)
+        const masterQuizData = [
+            {
+                active: "The coffee was extremely hot. I couldn't drink it immediately.",
+                question: "The coffee was (_______) drink immediately.",
+                answer: "too hot to",
+                explanation: "'너무 ~해서...할 수 없다'는 부정적인 의미이므로, 'too hot to' 구문이 적절합니다.",
+                options: ["too hot to", "hot enough to", "so hot that", "hot to"]
+            },
+            {
+                active: "The package was so light that the child could carry it.",
+                question: "The package was light (_______) carry.",
+                answer: "enough to",
+                explanation: "'충분히 ~해서...할 수 있다'는 긍정적인 의미를 나타내는 'enough to' 구문이 적절하며, 형용사 뒤에 위치합니다.",
+                options: ["too", "so", "enough to", "that"]
+            },
+            {
+                active: "It was so cold that we couldn't go swimming.",
+                question: "It was (_______) go swimming.",
+                answer: "too cold for us to",
+                explanation: "주어(It)와 행위자(us)가 다르고 부정적 의미이므로, 의미상 주어 'for us'와 'too ~ to' 구문이 필요합니다. ('for us to go'까지 포함)",
+                options: ["too cold for us to go", "too cold to go for us", "so cold for us to go", "too cold to go swimming"]
+            },
+            {
+                active: "She is tall. She can easily reach the top shelf.",
+                question: "She is (_______) the top shelf.",
+                answer: "tall enough to reach",
+                explanation: "'충분히 키가 커서 닿을 수 있다'는 긍정적 의미이므로 'tall enough to reach'를 사용합니다.",
+                options: ["too short to reach", "tall enough to reach", "too tall to reach", "short enough to reach"]
+            },
+            {
+                active: "The soup needs more salt. It is not tasty yet.",
+                question: "The soup is not (_______) for the party.",
+                answer: "salty enough to be served",
+                explanation: "수프는 대접 '되는' 것이므로 수동태 To부정사 'to be served'가 필요하며, 형용사 뒤 'enough to'를 사용합니다.",
+                options: ["salty enough to serve", "enough salty to serve", "salty enough to be served", "too salty to serve"]
+            },
+            {
+                active: "The mountain is so high that they cannot climb it.",
+                question: "The mountain is (_______) climb.",
+                answer: "too high for them to",
+                explanation: "'너무 높아서 그들이 오를 수 없다'는 의미로, 목적어(it)를 생략해야 합니다.",
+                options: ["too high for them to", "too high for them to climb it", "high enough for them to", "so high for them to"]
+            },
+            {
+                active: "The box is too heavy for me to lift.",
+                question: "The box is so heavy that (_______).",
+                answer: "I cannot lift it",
+                explanation: "'too ~ to'의 부정적 의미를 'so ~ that' 절 안에서 'cannot'을 사용하여 표현하고 목적어('it')를 포함합니다.",
+                options: ["I can lift it", "I cannot lift it", "I can lift", "it cannot lift me"]
+            },
+            {
+                active: "He speaks clearly. Everyone can understand him.",
+                question: "He speaks (_______) understand.",
+                answer: "clearly enough for everyone to",
+                explanation: "부사('clearly') 뒤에 'enough'가 오고, 의미상 주어는 'for everyone'입니다.",
+                options: ["clearly enough for everyone to", "enough clearly for everyone to", "clearly enough of everyone to", "too clearly for everyone to"]
+            },
+            {
+                active: "That jacket is very expensive. I cannot afford to buy it.",
+                question: "That jacket is so expensive that (_______).",
+                answer: "I cannot buy it",
+                explanation: "'too ~ to'의 부정적 의미를 'so ~ that' 절 안에서 'cannot'을 사용하여 표현하고 목적어('it')를 포함합니다.",
+                options: ["I can buy it", "I cannot buy it", "it cannot buy me", "I cannot buy"]
+            },
+            {
+                active: "He is strong. He can lift the box.",
+                question: "He is (_______) lift the box.",
+                answer: "strong enough to",
+                explanation: "'충분히 강해서 들 수 있다'는 긍정적 의미이므로 'strong enough to'를 사용합니다.",
+                options: ["too strong to", "strong to", "too strong for", "strong enough to"]
+            },
+            // --- 추가 10문제 ---
+            {
+                active: "The music was very loud. I couldn't sleep.",
+                question: "The music was (_______) sleep.",
+                answer: "too loud to",
+                explanation: "'너무 시끄러워서 잘 수 없었다'는 부정적 의미이므로 'too loud to'를 사용합니다.",
+                options: ["too loud to", "loud enough to", "so loud that", "loud to"]
+            },
+            {
+                active: "The water is warm. We can swim in it.",
+                question: "The water is warm (_______) swim in.",
+                answer: "enough to",
+                explanation: "'충분히 따뜻해서 수영할 수 있다'는 긍정적 의미이므로 'warm enough to'를 사용합니다.",
+                options: ["too warm to", "warm to", "warm enough to", "so warm that"]
+            },
+            {
+                active: "She ran very fast. I couldn't catch her.",
+                question: "She ran (_______) catch.",
+                answer: "too fast for me to",
+                explanation: "'너무 빨라서 내가 잡을 수 없었다'는 의미로, 의미상 주어 'for me'를 포함하여 'too ~ to' 구문을 사용합니다.",
+                options: ["too fast for me to", "fast enough for me to", "too fast to", "fast enough to"]
+            },
+            {
+                active: "I am old. I can drive a car.",
+                question: "I am old (_______) a car.",
+                answer: "enough to drive",
+                explanation: "'충분히 나이가 들어서 운전할 수 있다'는 의미이므로 'old enough to drive'를 사용합니다.",
+                options: ["too old to drive", "old to drive", "enough old to drive", "old enough to drive"]
+            },
+            {
+                active: "The bag is light. You can lift it.",
+                question: "The bag is light (_______) lift.",
+                answer: "enough for you to",
+                explanation: "'충분히 가벼워서 네가 들 수 있다'는 의미로, 의미상 주어 'for you'를 포함하여 'enough to' 구문을 사용합니다.",
+                options: ["too light for you to", "light enough for you to", "light to lift", "enough light for you to"]
+            },
+            {
+                active: "The teacher spoke quietly. The students couldn't hear him.",
+                question: "The teacher spoke (_______) hear.",
+                answer: "too quietly for the students to",
+                explanation: "'너무 조용히 말해서 학생들이 들을 수 없었다'는 의미로, 부사 뒤에 'too'를 쓰고 의미상 주어를 포함합니다.",
+                options: ["quietly enough for the students to", "too quietly for the students to", "quietly to hear", "too quietly to"]
+            },
+            {
+                active: "He is clever. He can solve the problem.",
+                question: "He is (_______) the problem.",
+                answer: "clever enough to solve",
+                explanation: "'충분히 영리해서 풀 수 있다'는 의미이므로 'clever enough to solve'를 사용합니다.",
+                options: ["too clever to solve", "clever to solve", "clever enough to solve", "enough clever to solve"]
+            },
+            {
+                active: "The knife is blunt. You cannot cut with it.",
+                question: "The knife is (_______) cut with.",
+                answer: "too blunt to",
+                explanation: "'너무 무뎌서 자를 수 없다'는 의미로, 주어가 To부정사의 목적어 역할을 하므로 'too blunt to cut with'를 사용하고 목적어 it을 생략합니다.",
+                options: ["too blunt to cut with it", "too blunt to", "blunt enough to", "so blunt that"]
+            },
+            {
+                active: "The coat is not large. It doesn't fit me.",
+                question: "The coat is not (_______) me.",
+                answer: "large enough to fit",
+                explanation: "'충분히 크지 않아서 나에게 맞지 않는다'는 의미로, 'not enough to' 구문을 사용합니다.",
+                options: ["too large to fit", "large enough to fit", "large to fit", "enough large to fit"]
+            },
+            {
+                active: "The luggage was very heavy. I could hardly move it.",
+                question: "The luggage was so heavy that (_______).",
+                answer: "I could not move it",
+                explanation: "'too ~ to'의 의미를 'so ~ that'으로 변환하며, 'could not'을 사용하고 목적어 'it'을 생략하지 않아야 합니다.",
+                options: ["I could move it", "I could not move it", "I could move", "it could not move"]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isAnswerChecked = false;
+        let quizMode = 'objective'; 
+        let incorrectAnswers = []; 
+        let currentQuizSet = []; 
+
+        // DOM 요소들 가져오기
+        const progressText = document.getElementById('progress-text');
+        const activeSentenceEl = document.getElementById('active-sentence');
+        const questionTextEl = document.getElementById('question-text');
+        const userAnswerEl = document.getElementById('user-answer');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const newQuizBtn = document.getElementById('new-quiz-btn'); 
+        const resultArea = document.getElementById('result-area');
+        const finalScoreEl = document.getElementById('final-score');
+        const questionArea = document.getElementById('question-area');
+        const modeToggleBtn = document.getElementById('mode-toggle-btn');
+        const multipleChoiceArea = document.getElementById('multiple-choice-area');
+        const blankUnderlineEl = document.getElementById('blank-underline');
+        const missedQuestionsContainer = document.getElementById('missed-questions-container'); 
+        const printBtn = document.getElementById('print-btn'); 
+
+        // 배열 섞기 함수 (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 마스터 데이터에서 무작위로 문제를 선택하는 함수
+        function selectRandomQuestions(data, count) {
+            const shuffled = shuffleArray([...data]);
+            return shuffled.slice(0, count);
+        }
+
+        // 퀴즈 모드 전환 함수
+        function toggleQuizMode() {
+            if (isAnswerChecked) return; 
+
+            if (quizMode === 'subjective') {
+                quizMode = 'objective';
+                modeToggleBtn.textContent = '현재: 객관식 (변경: 주관식으로 보기)';
+                userAnswerEl.classList.add('hidden');
+                multipleChoiceArea.classList.remove('hidden');
+                userAnswerEl.value = ''; 
+            } else {
+                quizMode = 'subjective';
+                modeToggleBtn.textContent = '현재: 주관식 (변경: 객관식으로 보기)';
+                userAnswerEl.classList.remove('hidden');
+                multipleChoiceArea.classList.add('hidden');
+                multipleChoiceArea.innerHTML = ''; 
+            }
+            submitBtn.textContent = '정답 확인';
+            loadQuestion(true); 
+            userAnswerEl.focus();
+        }
+
+        // 새로운 퀴즈 시작 또는 기존 퀴즈 다시 시작
+        function startNewQuiz(isNewSet = false) {
+            currentQuestionIndex = 0;
+            score = 0;
+            isAnswerChecked = false;
+            incorrectAnswers = []; 
+
+            // '문제 더 풀기'인 경우에만 문제 세트를 새로 선택
+            if (isNewSet || currentQuizSet.length === 0) {
+                 currentQuizSet = selectRandomQuestions(masterQuizData, 10);
+            }
+
+            // UI 요소 재설정
+            questionArea.classList.remove('hidden');
+            feedbackMessageEl.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            feedbackMessageEl.textContent = '';
+            progressText.classList.remove('hidden');
+            modeToggleBtn.classList.remove('hidden');
+            restartBtn.classList.add('hidden');
+            newQuizBtn.classList.add('hidden');
+            printBtn.classList.add('hidden'); 
+            resultArea.classList.add('hidden');
+            
+            loadQuestion();
+        }
+
+        // 퀴즈 시작 및 다음 문제 로드
+        function loadQuestion(isModeChange = false) {
+            if (currentQuestionIndex >= currentQuizSet.length) {
+                showResults();
+                return;
+            }
+
+            const currentQuestion = currentQuizSet[currentQuestionIndex];
+            
+            // 상태 초기화
+            userAnswerEl.value = '';
+            feedbackMessageEl.textContent = '';
+            userAnswerEl.disabled = false;
+            submitBtn.classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            nextBtn.disabled = true;
+            isAnswerChecked = false;
+            
+            // 문제 내용 업데이트
+            progressText.textContent = `문제 ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
+            activeSentenceEl.textContent = currentQuestion.active;
+
+            // 밑줄 시각화 처리
+            const [prefix, suffix] = currentQuestion.question.split('(_______)');
+            questionTextEl.innerHTML = `${prefix}<span class="question-text-line" id="blank-underline"></span>${suffix}`;
+            
+            // 모드에 따른 입력 UI 설정
+            if (quizMode === 'subjective') {
+                userAnswerEl.classList.remove('hidden');
+                multipleChoiceArea.classList.add('hidden');
+                userAnswerEl.focus();
+            } else {
+                // 옵션이 유효한 배열인지 확인하고 렌더링 시도
+                userAnswerEl.classList.add('hidden');
+                multipleChoiceArea.classList.remove('hidden');
+                if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+                    renderMultipleChoice(currentQuestion.options);
+                } else {
+                    console.error("Error: Options array is missing or empty for the current question.");
+                    multipleChoiceArea.innerHTML = '<p class="text-red-500">객관식 보기를 불러올 수 없습니다. (데이터 오류)</p>';
+                }
+            }
+
+            if (!isModeChange) {
+                userAnswerEl.focus();
+            }
+        }
+
+        // 객관식 옵션 렌더링
+        function renderMultipleChoice(options) {
+            multipleChoiceArea.innerHTML = '';
+            const shuffledOptions = shuffleArray([...options]);
+
+            shuffledOptions.forEach((option, index) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.id = `option-${index}`;
+                radio.name = 'quiz-option';
+                radio.value = option;
+                radio.className = 'w-5 h-5 text-indigo-600 focus:ring-indigo-500 border-gray-300';
+
+                const label = document.createElement('label');
+                label.htmlFor = `option-${index}`;
+                label.textContent = option;
+                label.className = 'ml-3 text-lg text-gray-700 cursor-pointer w-full p-2 rounded-lg border border-gray-200 hover:bg-indigo-100 transition duration-150 flex items-center';
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                div.appendChild(radio);
+                div.appendChild(label);
+                
+                label.addEventListener('click', () => {
+                    radio.checked = true;
+                });
+
+                multipleChoiceArea.appendChild(div);
+            });
+        }
+
+        // 정답 확인 함수
+        function checkAnswer() {
+            if (isAnswerChecked) return;
+
+            const currentQuestionData = currentQuizSet[currentQuestionIndex];
+            let userAnswer;
+            let isCorrect = false;
+
+            if (quizMode === 'subjective') {
+                userAnswer = userAnswerEl.value.trim().toLowerCase();
+                if (userAnswer === '') {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                    feedbackMessageEl.textContent = '답을 입력해 주세요.';
+                    return;
+                }
+            } else { // objective mode
+                const selectedRadio = document.querySelector('input[name="quiz-option"]:checked');
+                if (!selectedRadio) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                    feedbackMessageEl.textContent = '답을 하나 선택해주세요.';
+                    return;
+                }
+                userAnswer = selectedRadio.value.trim().toLowerCase();
+
+                document.querySelectorAll('input[name="quiz-option"]').forEach(radio => radio.disabled = true);
+            }
+
+            const correctAnswer = currentQuestionData.answer.trim().toLowerCase();
+            const explanation = currentQuestionData.explanation;
+            
+            userAnswerEl.disabled = true;
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+            nextBtn.disabled = false;
+            isAnswerChecked = true; 
+
+            if (userAnswer === correctAnswer) {
+                score++;
+                isCorrect = true;
+                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-green-600';
+                feedbackMessageEl.textContent = '✅ 정답입니다! 다음 문제로 넘어가세요.';
+
+                if (quizMode === 'subjective') {
+                    userAnswerEl.classList.remove('border-red-500');
+                    userAnswerEl.classList.add('border-green-500');
+                } else {
+                    document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
+                        const label = radio.nextElementSibling;
+                        if (radio.value.toLowerCase() === correctAnswer) {
+                            label.classList.add('bg-green-200', 'border-green-500');
+                        }
+                    });
+                }
+            } else {
+                // 오답인 경우, 틀린 문제 배열에 추가
+                incorrectAnswers.push(currentQuestionData);
+
+                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-blue-600">'${currentQuestionData.answer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
+                
+                if (quizMode === 'subjective') {
+                    userAnswerEl.classList.remove('border-green-500');
+                    userAnswerEl.classList.add('border-red-500');
+                } else {
+                    document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
+                        const label = radio.nextElementSibling;
+                        if (radio.checked) {
+                            label.classList.add('bg-red-200', 'border-red-500'); 
+                        } else if (radio.value.toLowerCase() === correctAnswer) {
+                            label.classList.add('bg-blue-200', 'border-blue-500'); 
+                        }
+                    });
+                }
+            }
+        }
+
+        // 다음 문제로 이동
+        function moveToNext() {
+            if (!isAnswerChecked) {
+                feedbackMessageEl.textContent = '먼저 정답을 확인하세요.';
+                return;
+            }
+            
+            userAnswerEl.classList.remove('border-green-500', 'border-red-500');
+            userAnswerEl.classList.add('border-indigo-300');
+
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // 결과 표시 함수
+        function showResults() {
+            questionArea.classList.add('hidden');
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            feedbackMessageEl.classList.add('hidden');
+            progressText.classList.add('hidden');
+            modeToggleBtn.classList.add('hidden');
+            
+            // 결과 화면 관련 버튼 표시
+            restartBtn.classList.remove('hidden');
+            newQuizBtn.classList.remove('hidden'); 
+            printBtn.classList.remove('hidden'); 
+
+            const total = currentQuizSet.length;
+            finalScoreEl.textContent = `총 ${total}문제 중 ${score}점 획득하셨습니다! (${(score / total * 100).toFixed(0)}%)`;
+
+            // 틀린 문제 목록 생성 및 표시
+            missedQuestionsContainer.innerHTML = '';
+            if (incorrectAnswers.length > 0) {
+                let listHtml = '<h3 class="text-xl font-bold text-gray-800 mt-8 mb-4 border-t pt-4 border-indigo-200">틀린 문제 복습</h3>';
+                
+                incorrectAnswers.forEach((item, index) => {
+                    // 밑줄을 시각화하고 정답 자리에는 정답 표시 (인디고 600)
+                    const questionTextDisplay = item.question.replace('(_______)', `<span class="text-indigo-600 font-extrabold underline">${item.answer}</span>`);
+                    
+                    listHtml += `
+                        <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+                            <p class="font-bold text-base mb-1 text-gray-800">문제 ${index + 1}. (원문): ${item.active}</p>
+                            <p class="mb-2 text-gray-600">질문: ${questionTextDisplay}</p>
+                            <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
+                            <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
+                        </div>
+                    `;
+                });
+                missedQuestionsContainer.innerHTML = listHtml;
+            } else {
+                 missedQuestionsContainer.innerHTML = '<p class="text-lg text-green-700 mt-4 font-semibold text-center py-4">🎉 모든 문제를 맞추셨습니다! 대단해요!</p>';
+            }
+
+            resultArea.classList.remove('hidden');
+        }
+
+        // 퀴즈 재시작 함수 (동일 문제 세트로)
+        function restartQuiz() {
+            startNewQuiz(false);
+        }
+        
+        // 신규 문제 풀기 함수 (새로운 문제 세트로)
+        function startNewSetQuiz() {
+            startNewQuiz(true);
+        }
+
+        // 인쇄 기능
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+
+        // 이벤트 리스너 등록
+        submitBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', moveToNext);
+        restartBtn.addEventListener('click', restartQuiz); // '다시 풀기'
+        newQuizBtn.addEventListener('click', startNewSetQuiz); // '문제 더 풀기 (랜덤)'
+        modeToggleBtn.addEventListener('click', toggleQuizMode);
+        
+        // Enter 키 로직: '다음 문제' 버튼의 표시 여부와 현재 포커스에 따라 동작 분리
+        document.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                
+                // 3. 최종 결과 화면일 때 -> '다시 풀기'로 동작
+                if (currentQuestionIndex >= currentQuizSet.length && resultArea.classList.contains('hidden') === false) {
+                     restartBtn.click(); // '다시 풀기' 버튼 클릭 동작
+                     return;
+                }
+                
+                // 1. '다음 문제' 버튼이 숨겨져 있다면 (아직 정답 확인 전) -> 정답 확인
+                if (nextBtn.classList.contains('hidden')) {
+                    // 주관식: 입력 필드에 포커스가 있고 내용이 있을 때
+                    if (quizMode === 'subjective' && document.activeElement === userAnswerEl && userAnswerEl.value.trim() !== '') {
+                        checkAnswer();
+                    } 
+                    // 객관식: 옵션 중 하나가 선택되었을 때
+                    else if (quizMode === 'objective' && document.querySelector('input[name="quiz-option"]:checked')) {
+                        checkAnswer();
+                    }
+                } 
+                // 2. '다음 문제' 버튼이 보인다면 (정답 확인 후) -> 다음 문제로 이동
+                else {
+                    moveToNext();  
+                }
+            }
+        });
+
+        // 퀴즈 초기 로드 (새로운 문제 세트로 시작)
+        window.onload = () => startNewQuiz(true);
+    </script>
+</body>
+</html>
