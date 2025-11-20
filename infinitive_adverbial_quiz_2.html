@@ -148,12 +148,13 @@
                 explanation: "목적을 나타내는 To부정사 구문입니다. 'to get'이 가장 일반적인 형태입니다. (수행평가에서 A+를 받기 위해서)",
                 options: ["to get", "getting", "so as getting", "to have gotten"]
             },
+            // --- (새로운 문제 1) 목적 용법 (In order to) ---
             {
-                active: "나는 돈을 모으고 있다. 친구 생일 이벤트를 위한 케이크를 사기 위해서.",
-                question: "I'm saving money (_______) a cake for my friend's birthday event.",
-                answer: "to buy",
-                explanation: "'to buy'는 '~하기 위해서'라는 목적을 나타냅니다. (케이크를 사기 위해서)",
-                options: ["to buy", "buying", "for buy", "to have bought"]
+                active: "그는 컴퓨터 전원을 껐다. 파일을 저장하기 위해서였다.",
+                question: "He turned off the computer (_______) the files.",
+                answer: "in order to save",
+                explanation: "'in order to save'는 'to save'와 동일하게 목적(~하기 위해서)을 나타내며, 목적 용법을 강조할 때 사용됩니다. (파일을 저장하기 위해서)",
+                options: ["in order to save", "to saving", "in order saving", "to saved"]
             },
             {
                 active: "우리는 포토부스에 줄을 섰다. 재미있는 스티커 사진을 찍기 위해서였다.",
@@ -177,12 +178,13 @@
                 explanation: "감정을 나타내는 형용사(surprised) 뒤에 'to R'는 감정의 원인을 나타냅니다.",
                 options: ["to hear", "hearing", "to having heard", "for hearing"]
             },
+            // --- (새로운 문제 2) 형용사 수식 (정도) ---
             {
-                active: "그녀는 슬펐다. 좋아하는 아이돌의 콘서트 표를 놓쳤을 때.",
-                question: "She was sad (_______) the concert tickets.",
-                answer: "to miss",
-                explanation: "감정을 나타내는 형용사(sad) 뒤에 'to R'는 감정의 원인을 나타냅니다.",
-                options: ["to miss", "missing", "to having missed", "for missing"]
+                active: "그 책은 읽기에 쉽다. (읽을 정도로 쉽다)",
+                question: "This book is easy (_______).",
+                answer: "to read",
+                explanation: "To부정사가 앞의 형용사('easy')를 수식하여 '~하기에'라는 정도를 나타냅니다.",
+                options: ["to read", "reading", "to reading", "read"]
             },
             {
                 active: "나는 유감이었다. 친구 필기를 못 빌리게 되어서.",
@@ -220,14 +222,8 @@
                 explanation: "'must be'와 함께 쓰여 '틀림없이 ~일 것이다'라는 판단의 근거를 나타냅니다. (선생님 반응을 확인하는 것을 보니)",
                 options: ["to check", "checking", "to checking", "for checking"]
             },
-            // --- 결과 (Result) ---
-            {
-                active: "그는 시험 기간에 밤을 새웠다. 그러나 결국 성적은 오르지 않았다.",
-                question: "He stayed up all night, (_______) his grade improve.",
-                answer: "only to not see",
-                explanation: "'only to R'는 '결국 ~하다'라는 예상 밖의 (주로 부정적인) 결과를 나타냅니다. 이 문맥에서는 '성적이 오르지 않았다'는 의미로 부정형을 사용하여야 합니다.",
-                options: ["to not see", "only to not see", "so as not to see", "in order not to see"]
-            },
+            // --- 결과 (Result) - (남아있는 문제 3개) ---
+            
             {
                 active: "나는 열심히 공부해서 반에서 1등이 되었다.",
                 question: "I studied hard (_______) the first in my class.",
@@ -249,6 +245,7 @@
                 explanation: "'only to R'는 예상 밖의 부정적인 결과를 나타냅니다. '결국 ~해야 했다'는 의미로 'have to'와 함께 사용됩니다.",
                 options: ["to have to", "only to have to", "so as to have to", "in order to have to"]
             },
+            
             // --- 조건 (Condition) ---
             {
                 active: "너는 놀랄 것이다. 내 새로운 인싸템을 본다면.",
@@ -257,20 +254,14 @@
                 explanation: "'would be surprised'와 같은 조동사와 함께 쓰여 '네가 ~한다면'의 조건절을 대신합니다. (If you saw it...)",
                 options: ["to see", "seeing", "for seeing", "to have seen"]
             },
-            {
-                active: "그는 유튜브 영상을 켰다. 그러나 결국 아침 해가 뜰 때까지 잠을 자지 못했다.",
-                question: "He turned on YouTube, (_______) sleep until sunrise.",
-                answer: "only to not",
-                explanation: "'only to R'는 예상 밖의 부정적인 결과를 나타내며, '결국 ~하지 못하다'는 의미입니다. 'not'은 to부정사 앞에 위치합니다. (결과 용법)",
-                options: ["to not", "only not to", "only to not", "not to"]
-            },
             // --- 목적 (Purpose) ---
+            // *문제 17번: 단일 정답 'to ask'로 변경, 보기에서 'in order to ask'와 'so as to ask' 제거 후 오답 대체*
             {
                 active: "나는 친구에게 급하게 전화를 걸었다. 내일 시험 범위가 어디인지 물어볼 목적이었다.",
                 question: "I called my friend urgently (_______) what the test scope was.",
-                answer: "to ask",
-                explanation: "'to ask'는 '~하기 위해서'라는 목적을 나타내는 가장 일반적인 표현입니다. (시험 범위를 물어보기 위해서)",
-                options: ["to ask", "in order to ask", "so as to ask", "to have asked"]
+                answer: "to ask", // 단일 정답
+                explanation: "'to ask'는 '~할 목적'을 나타내는 To부정사의 부사적 용법 중 가장 일반적인 형태입니다.",
+                options: ["to ask", "ask to", "for ask", "to be asked"] // 오답으로 대체
             }
         ];
 
@@ -418,7 +409,8 @@
             }
             
             const userAnswer = selectedRadio.value.trim();
-            const correctAnswer = currentQuestionData.answer.trim();
+            // 정답은 이제 항상 단일 문자열입니다.
+            const correctAnswer = String(currentQuestionData.answer).trim(); 
             const explanation = currentQuestionData.explanation;
             
             // 정규화 (소문자, 공백 제거)
@@ -433,6 +425,7 @@
             nextBtn.disabled = false;
             isAnswerChecked = true; 
 
+            // 단일 정답 비교
             let isCorrect = (normalizedUserAnswer === normalizedCorrectAnswer);
 
             if (isCorrect) {
@@ -450,8 +443,11 @@
                 // 오답인 경우, 틀린 문제 배열에 추가
                 incorrectAnswers.push(currentQuestionData);
 
+                // 정답은 단일 문자열로 표시
+                const displayCorrectAnswer = correctAnswer;
+                
                 feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
-                feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-blue-600">'${correctAnswer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
+                feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-blue-600">'${displayCorrectAnswer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
                 
                 document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
                     const label = radio.nextElementSibling;
@@ -501,13 +497,15 @@
                 
                 incorrectAnswers.forEach((item, index) => {
                     // 밑줄을 시각화하고 정답 자리에는 정답 표시 (하늘색 600)
-                    const questionTextDisplay = item.question.replace('(_______)', `<span class="text-sky-600 font-extrabold underline">${item.answer}</span>`);
+                    // item.answer는 이제 문자열입니다.
+                    const primaryAnswer = String(item.answer).trim();
+                    const questionTextDisplay = item.question.replace('(_______)', `<span class="text-sky-600 font-extrabold underline">${primaryAnswer}</span>`);
                     
                     listHtml += `
                         <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
                             <p class="font-bold text-base mb-1 text-gray-800">문제 ${index + 1}. (원문): ${item.active}</p>
                             <p class="mb-2 text-gray-600">질문: ${questionTextDisplay}</p>
-                            <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
+                            <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${primaryAnswer}</span></p> 
                             <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
                         </div>
                     `;
