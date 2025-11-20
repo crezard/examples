@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To부정사의 부사적 용법 퀴즈</title>
+    <!-- Tailwind CSS CDN --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 사용 설정 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 밝은 회색 배경 */
+        }
+        .quiz-container {
+            max-width: 640px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom style for the underline effect using border-bottom */
+        .question-text-line {
+            border-bottom: 2px solid #0284c7; /* Sky Blue color for underline */
+            display: inline-block;
+            padding-bottom: 2px;
+            line-height: 1.25;
+            min-width: 150px; /* Minimum width for the blank */
+            text-align: center;
+        }
+
+        /* 인쇄용 CSS 설정 */
+        @media print {
+            body {
+                background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .quiz-container {
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            /* 인쇄 시 숨길 요소 */
+            #progress-text, #question-area, #submit-btn, #next-btn, #feedback-message, #restart-btn, #new-quiz-btn, #print-btn, .flex.justify-between.items-center.gap-4 {
+                display: none !important;
+            }
+            /* 결과 영역을 깨끗하게 표시 */
+            #result-area {
+                display: block !important;
+                background-color: white !important;
+                border: none !important;
+                color: black !important;
+                padding: 0 !important;
+                margin-top: 0 !important;
+            }
+            #result-area p, #result-area h3 {
+                color: black !important;
+            }
+            /* 틀린 문제 복습 부분의 배경색을 회색으로 (인쇄용) */
+            #missed-questions-container .bg-gray-50 {
+                background-color: #eeeeee !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            #missed-questions-container .text-red-700, #missed-questions-container .text-green-700 {
+                color: #333 !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="quiz-app" class="quiz-container">
+        <h1 class="text-3xl font-extrabold text-center text-sky-700 mb-6 border-b pb-3">To부정사의 부사적 용법 퀴즈 (10문제)</h1>
+
+        <!-- 모드 선택 및 진행 상황 표시 --><div class="flex justify-end items-center mb-4">
+            <span id="progress-text" class="text-lg font-semibold text-gray-600">문제 1 / 10</span>
+        </div>
+
+        <!-- 문제 영역 --><div id="question-area" class="bg-sky-50 p-6 rounded-lg mb-6">
+            <p class="text-sm text-sky-600 mb-2">다음 문장을 읽고, 밑줄에 들어갈 **올바른 To부정사 구문**을 영문으로 완성하세요. (목적, 감정의 원인, 결과 등)</p>
+            <p id="active-sentence" class="text-xl font-bold text-gray-800 mb-4 break-words">Context Sentence</p>
+            
+            <!-- 질문 텍스트: 밑줄(_______) 대신 HTML <span> 태그를 사용하여 밑줄 시각화 --><p id="question-text" class="text-lg text-gray-700 mb-4 break-words">Question: The problem statement will load here (_______) ...</p>
+            
+            <!-- 객관식 옵션 영역 --><div id="multiple-choice-area" class="mt-4 flex flex-col space-y-3">
+                <!-- Radio buttons will be inserted here by JavaScript --></div>
+        </div>
+
+        <!-- 피드백 및 버튼 영역 --><div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div id="feedback-message" class="text-lg font-medium w-full sm:w-2/3 min-h-[1.5rem]"></div>
+            
+            <button id="submit-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-700 transition duration-300 ease-in-out">
+                정답 확인
+            </button>
+            <button id="next-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-300 ease-in-out hidden" disabled>
+                다음 문제
+            </button>
+            <!-- 퀴즈 진행 중에는 숨기고, 결과 화면에서 표시 --><button id="restart-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition duration-300 ease-in-out hidden">
+                다시 풀기
+            </button>
+        </div>
+
+        <!-- 최종 점수 영역 (디자인 변경됨) --><div id="result-area" class="mt-8 p-6 bg-white border-2 border-sky-300 rounded-xl shadow-lg hidden">
+            <p class="text-xl font-bold mb-2 text-sky-700 border-b pb-2">퀴즈 결과</p>
+            <p id="final-score" class="text-4xl font-extrabold text-sky-800 my-4 text-center"></p>
+            <!-- 틀린 문제 목록 표시 영역 --><div id="missed-questions-container"></div>
+            <!-- 버튼 그룹 --><div class="flex flex-col sm:flex-row gap-4 mt-6">
+                <button id="new-quiz-btn" class="w-full py-3 px-4 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-700 transition duration-300 ease-in-out hidden">
+                    문제 더 풀기 (랜덤)
+                </button>
+                <!-- 인쇄 버튼 --><button id="print-btn" class="w-full py-3 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-300 ease-in-out hidden">
+                    결과 인쇄하기
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // 문제 데이터: 총 20개 문제 풀 (To부정사의 부사적 용법)
+        const masterQuizData = [
+            // --- 목적 (Purpose) ---
+            {
+                active: "나는 오늘 급식 메뉴가 뭔지 궁금해서 확인했다.",
+                question: "I checked the lunch menu (_______) the day's meal.",
+                answer: "to know",
+                explanation: "'to know'는 '~하기 위해서'라는 목적을 나타내는 가장 일반적인 표현입니다. (오늘의 메뉴를 알기 위해서)",
+                options: ["to know", "for knowing", "know", "to have known"]
+            },
+            {
+                active: "우리는 일찍 학교에서 나왔다. 하교길의 혼잡함을 피하기 위해서였다.",
+                question: "We left school early (_______) the crowds on the way home.",
+                answer: "to avoid",
+                explanation: "목적을 나타내는 To부정사 구문입니다. 'to avoid'가 가장 흔합니다. (혼잡함을 피하기 위해서)",
+                options: ["to avoid", "in order avoiding", "avoiding", "to have avoided"]
+            },
+            {
+                active: "그는 밤새 발표 자료를 만들었다. 수행평가에서 A+를 받기 위해서였다.",
+                question: "He prepared the presentation all night (_______) an A+ on the evaluation.",
+                answer: "to get",
+                explanation: "목적을 나타내는 To부정사 구문입니다. 'to get'이 가장 일반적인 형태입니다. (수행평가에서 A+를 받기 위해서)",
+                options: ["to get", "getting", "so as getting", "to have gotten"]
+            },
+            {
+                active: "나는 돈을 모으고 있다. 친구 생일 이벤트를 위한 케이크를 사기 위해서.",
+                question: "I'm saving money (_______) a cake for my friend's birthday event.",
+                answer: "to buy",
+                explanation: "'to buy'는 '~하기 위해서'라는 목적을 나타냅니다. (케이크를 사기 위해서)",
+                options: ["to buy", "buying", "for buy", "to have bought"]
+            },
+            {
+                active: "우리는 포토부스에 줄을 섰다. 재미있는 스티커 사진을 찍기 위해서였다.",
+                question: "We lined up at the photo booth (_______) fun sticker photos.", 
+                answer: "to take",
+                explanation: "'to take'는 '~하기 위해서'라는 목적을 나타내는 가장 기본적인 To부정사 목적 용법입니다.",
+                options: ["to take", "taking", "for taking", "to have taken"] 
+            },
+            // --- 감정의 원인 (Cause of Emotion) ---
+            {
+                active: "나는 기뻤다. 단톡방에서 친구들과 짤(meme)을 공유할 수 있다는 것을 알았을 때.",
+                question: "I was excited (_______) funny memes in the group chat.",
+                answer: "to share",
+                explanation: "감정을 나타내는 형용사(excited) 뒤에 'to R'는 감정의 원인을 나타냅니다. (~해서, ~하게 되어서)",
+                options: ["to share", "sharing", "to having shared", "for sharing"]
+            },
+            {
+                active: "우리는 놀랐다. 친구가 싸운 친구와 카톡으로 바로 화해했다는 소식을 듣고.",
+                question: "We were surprised (_______) that they made up so fast.",
+                answer: "to hear",
+                explanation: "감정을 나타내는 형용사(surprised) 뒤에 'to R'는 감정의 원인을 나타냅니다.",
+                options: ["to hear", "hearing", "to having heard", "for hearing"]
+            },
+            {
+                active: "그녀는 슬펐다. 좋아하는 아이돌의 콘서트 표를 놓쳤을 때.",
+                question: "She was sad (_______) the concert tickets.",
+                answer: "to miss",
+                explanation: "감정을 나타내는 형용사(sad) 뒤에 'to R'는 감정의 원인을 나타냅니다.",
+                options: ["to miss", "missing", "to having missed", "for missing"]
+            },
+            {
+                active: "나는 유감이었다. 친구 필기를 못 빌리게 되어서.",
+                question: "I am sorry (_______) your notes.",
+                answer: "not to borrow",
+                explanation: "유감(sorry)의 원인을 나타내는 to부정사의 부정형입니다. To부정사의 부정은 'not to R' 형태를 사용합니다.",
+                options: ["not to borrow", "to not borrow", "for not borrowing", "to missed"]
+            },
+            {
+                active: "나는 행복하다. 방과 후에 편의점 라면을 먹을 수 있어서.",
+                question: "I am happy (_______) instant ramen after school.",
+                answer: "to eat",
+                explanation: "감정(happy)의 원인을 나타내는 to부정사 구문입니다.",
+                options: ["to eat", "eating", "for eating", "to be eating"]
+            },
+            // --- 판단의 근거 (Basis of Judgment) ---
+            {
+                active: "매번 틱톡 댄스 영상을 찍는 것을 보니, 그는 춤에 진심임에 틀림없다.",
+                question: "He must be serious about dancing (_______) TikTok videos every day.",
+                answer: "to shoot",
+                explanation: "'must be'와 함께 쓰여 '틀림없이 ~일 것이다'라는 판단의 근거를 나타냅니다. (~하는 것을 보니)",
+                options: ["to shoot", "to shooting", "shooting", "for shooting"]
+            },
+            {
+                active: "그녀의 피드를 보면, 그녀는 매우 꼼꼼한 사람임에 틀림없다.",
+                question: "She must be very careful (_______) her clean Instagram feed.",
+                answer: "to see",
+                explanation: "주절의 'must be + 형용사' 뒤에 'to R'가 와서 **'~하는 것을 보니 틀림없이 ~하다'**라는 판단의 근거를 나타냅니다.",
+                options: ["to see", "seeing", "to seeing", "for seeing"]
+            },
+            {
+                active: "담임 선생님 눈치를 보는 것을 보니, 그는 지금 혼날까 봐 걱정하는 것임에 틀림없다.",
+                question: "He must be worried (_______) his teacher's reaction.",
+                answer: "to check",
+                explanation: "'must be'와 함께 쓰여 '틀림없이 ~일 것이다'라는 판단의 근거를 나타냅니다. (선생님 반응을 확인하는 것을 보니)",
+                options: ["to check", "checking", "to checking", "for checking"]
+            },
+            // --- 결과 (Result) ---
+            {
+                active: "그는 시험 기간에 밤을 새웠다. 그러나 결국 성적은 오르지 않았다.",
+                question: "He stayed up all night, (_______) his grade improve.",
+                answer: "only to not see",
+                explanation: "'only to R'는 '결국 ~하다'라는 예상 밖의 (주로 부정적인) 결과를 나타냅니다. 이 문맥에서는 '성적이 오르지 않았다'는 의미로 부정형을 사용하여야 합니다.",
+                options: ["to not see", "only to not see", "so as not to see", "in order not to see"]
+            },
+            {
+                active: "나는 열심히 공부해서 반에서 1등이 되었다.",
+                question: "I studied hard (_______) the first in my class.",
+                answer: "to be",
+                explanation: "노력의 결과를 나타냅니다. (공부해서 1등이 되었다)",
+                options: ["to be", "to being", "to have been", "for being"]
+            },
+            {
+                active: "나는 자라서 웹툰 작가가 되었다.",
+                question: "I grew up (_______) a webtoon artist.",
+                answer: "to be",
+                explanation: "'grow up to R'는 '자라서 ~이 되다'라는 결과를 나타냅니다. (결과 용법)",
+                options: ["to be", "to being", "to have been", "for being"]
+            },
+            {
+                active: "그들은 피드 색감을 맞추려 노력했다. 그러나 결국 계정은 비공개로 돌려야 했다.",
+                question: "They tried hard, (_______) set their account private.",
+                answer: "only to have to",
+                explanation: "'only to R'는 예상 밖의 부정적인 결과를 나타냅니다. '결국 ~해야 했다'는 의미로 'have to'와 함께 사용됩니다.",
+                options: ["to have to", "only to have to", "so as to have to", "in order to have to"]
+            },
+            // --- 조건 (Condition) ---
+            {
+                active: "너는 놀랄 것이다. 내 새로운 인싸템을 본다면.",
+                question: "You would be surprised (_______) my new popular item.",
+                answer: "to see",
+                explanation: "'would be surprised'와 같은 조동사와 함께 쓰여 '네가 ~한다면'의 조건절을 대신합니다. (If you saw it...)",
+                options: ["to see", "seeing", "for seeing", "to have seen"]
+            },
+            {
+                active: "그는 유튜브 영상을 켰다. 그러나 결국 아침 해가 뜰 때까지 잠을 자지 못했다.",
+                question: "He turned on YouTube, (_______) sleep until sunrise.",
+                answer: "only to not",
+                explanation: "'only to R'는 예상 밖의 부정적인 결과를 나타내며, '결국 ~하지 못하다'는 의미입니다. 'not'은 to부정사 앞에 위치합니다. (결과 용법)",
+                options: ["to not", "only not to", "only to not", "not to"]
+            },
+            // --- 목적 (Purpose) ---
+            {
+                active: "나는 친구에게 급하게 전화를 걸었다. 내일 시험 범위가 어디인지 물어볼 목적이었다.",
+                question: "I called my friend urgently (_______) what the test scope was.",
+                answer: "to ask",
+                explanation: "'to ask'는 '~하기 위해서'라는 목적을 나타내는 가장 일반적인 표현입니다. (시험 범위를 물어보기 위해서)",
+                options: ["to ask", "in order to ask", "so as to ask", "to have asked"]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isAnswerChecked = false;
+        let quizMode = 'objective'; 
+        let incorrectAnswers = []; 
+        let currentQuizSet = []; 
+
+        // DOM 요소들 가져오기
+        const progressText = document.getElementById('progress-text');
+        const activeSentenceEl = document.getElementById('active-sentence');
+        const questionTextEl = document.getElementById('question-text');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const newQuizBtn = document.getElementById('new-quiz-btn'); 
+        const resultArea = document.getElementById('result-area');
+        const finalScoreEl = document.getElementById('final-score');
+        const questionArea = document.getElementById('question-area');
+        const multipleChoiceArea = document.getElementById('multiple-choice-area');
+        const blankUnderlineEl = document.getElementById('blank-underline');
+        const missedQuestionsContainer = document.getElementById('missed-questions-container'); 
+        const printBtn = document.getElementById('print-btn'); 
+
+        // 배열 섞기 함수 (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 마스터 데이터에서 무작위로 문제를 선택하는 함수
+        function selectRandomQuestions(data, count) {
+            const shuffled = shuffleArray([...data]);
+            return shuffled.slice(0, count);
+        }
+
+        // 새로운 퀴즈 시작 또는 기존 퀴즈 다시 시작
+        function startNewQuiz(isNewSet = false) {
+            currentQuestionIndex = 0;
+            score = 0;
+            isAnswerChecked = false;
+            incorrectAnswers = []; 
+
+            // '문제 더 풀기'인 경우에만 문제 세트를 새로 선택
+            if (isNewSet || currentQuizSet.length === 0) {
+                 currentQuizSet = selectRandomQuestions(masterQuizData, 10);
+            }
+
+            // UI 요소 재설정
+            questionArea.classList.remove('hidden');
+            feedbackMessageEl.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            feedbackMessageEl.textContent = '';
+            progressText.classList.remove('hidden');
+            restartBtn.classList.add('hidden');
+            newQuizBtn.classList.add('hidden');
+            printBtn.classList.add('hidden'); 
+            resultArea.classList.add('hidden');
+            
+            loadQuestion();
+        }
+
+        // 퀴즈 시작 및 다음 문제 로드
+        function loadQuestion() {
+            if (currentQuestionIndex >= currentQuizSet.length) {
+                showResults();
+                return;
+            }
+
+            const currentQuestion = currentQuizSet[currentQuestionIndex];
+            
+            // 상태 초기화
+            feedbackMessageEl.textContent = '';
+            submitBtn.classList.remove('hidden');
+            nextBtn.classList.add('hidden');
+            nextBtn.disabled = true;
+            isAnswerChecked = false;
+            
+            // 문제 내용 업데이트
+            progressText.textContent = `문제 ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
+            activeSentenceEl.textContent = currentQuestion.active;
+
+            // 밑줄 시각화 처리
+            const [prefix, suffix] = currentQuestion.question.split('(_______)');
+            questionTextEl.innerHTML = `${prefix}<span class="question-text-line" id="blank-underline"></span>${suffix}`;
+            
+            // 객관식만 렌더링
+            multipleChoiceArea.classList.remove('hidden');
+            if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+                renderMultipleChoice(currentQuestion.options);
+            } else {
+                console.error("Error: Options array is missing or empty for the current question.");
+                multipleChoiceArea.innerHTML = '<p class="text-red-500">객관식 보기를 불러올 수 없습니다. (데이터 오류)</p>';
+            }
+        }
+
+        // 객관식 옵션 렌더링
+        function renderMultipleChoice(options) {
+            multipleChoiceArea.innerHTML = '';
+            const shuffledOptions = shuffleArray([...options]);
+
+            shuffledOptions.forEach((option, index) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.id = `option-${index}`;
+                radio.name = 'quiz-option';
+                radio.value = option;
+                radio.className = 'w-5 h-5 text-sky-600 focus:ring-sky-500 border-gray-300';
+
+                const label = document.createElement('label');
+                label.htmlFor = `option-${index}`;
+                label.textContent = option;
+                label.className = 'ml-3 text-lg text-gray-700 cursor-pointer w-full p-2 rounded-lg border border-gray-200 hover:bg-sky-100 transition duration-150 flex items-center';
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                div.appendChild(radio);
+                div.appendChild(label);
+                
+                label.addEventListener('click', () => {
+                    // 라디오 버튼을 클릭해도 체크되도록 처리 (모바일 터치 편의성)
+                    radio.checked = true;
+                });
+
+                multipleChoiceArea.appendChild(div);
+            });
+        }
+
+        // 정답 확인 함수
+        function checkAnswer() {
+            if (isAnswerChecked) return;
+
+            const currentQuestionData = currentQuizSet[currentQuestionIndex];
+            const selectedRadio = document.querySelector('input[name="quiz-option"]:checked');
+            
+            if (!selectedRadio) {
+                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                feedbackMessageEl.textContent = '답을 하나 선택해주세요.';
+                return;
+            }
+            
+            const userAnswer = selectedRadio.value.trim();
+            const correctAnswer = currentQuestionData.answer.trim();
+            const explanation = currentQuestionData.explanation;
+            
+            // 정규화 (소문자, 공백 제거)
+            const normalizedCorrectAnswer = correctAnswer.toLowerCase().replace(/\s/g, '');
+            const normalizedUserAnswer = userAnswer.toLowerCase().replace(/\s/g, '');
+
+            // 객관식 보기는 비활성화
+            document.querySelectorAll('input[name="quiz-option"]').forEach(radio => radio.disabled = true);
+            
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.remove('hidden');
+            nextBtn.disabled = false;
+            isAnswerChecked = true; 
+
+            let isCorrect = (normalizedUserAnswer === normalizedCorrectAnswer);
+
+            if (isCorrect) {
+                score++;
+                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-green-600';
+                feedbackMessageEl.textContent = '✅ 정답입니다! 다음 문제로 넘어가세요.';
+
+                document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
+                    const radioValue = radio.value.trim().toLowerCase().replace(/\s/g, '');
+                    if (radioValue === normalizedCorrectAnswer) {
+                        radio.nextElementSibling.classList.add('bg-green-200', 'border-green-500');
+                    }
+                });
+            } else {
+                // 오답인 경우, 틀린 문제 배열에 추가
+                incorrectAnswers.push(currentQuestionData);
+
+                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-blue-600">'${correctAnswer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
+                
+                document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
+                    const label = radio.nextElementSibling;
+                    const radioValue = radio.value.trim().toLowerCase().replace(/\s/g, '');
+                    
+                    if (radio.checked) {
+                        label.classList.add('bg-red-200', 'border-red-500'); 
+                    } 
+                    if (radioValue === normalizedCorrectAnswer) {
+                        label.classList.add('bg-sky-200', 'border-sky-500'); // 정답은 하늘색으로 표시
+                    }
+                });
+            }
+        }
+
+        // 다음 문제로 이동
+        function moveToNext() {
+            if (!isAnswerChecked) {
+                feedbackMessageEl.textContent = '먼저 정답을 확인하세요.';
+                return;
+            }
+            
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // 결과 표시 함수
+        function showResults() {
+            questionArea.classList.add('hidden');
+            submitBtn.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+            feedbackMessageEl.classList.add('hidden');
+            progressText.classList.add('hidden');
+            
+            // 결과 화면 관련 버튼 표시
+            restartBtn.classList.remove('hidden');
+            newQuizBtn.classList.remove('hidden'); 
+            printBtn.classList.remove('hidden'); 
+
+            const total = currentQuizSet.length;
+            finalScoreEl.textContent = `총 ${total}문제 중 ${score}점 획득하셨습니다! (${(score / total * 100).toFixed(0)}%)`;
+
+            // 틀린 문제 목록 생성 및 표시
+            missedQuestionsContainer.innerHTML = '';
+            if (incorrectAnswers.length > 0) {
+                let listHtml = '<h3 class="text-xl font-bold text-gray-800 mt-8 mb-4 border-t pt-4 border-sky-200">틀린 문제 복습</h3>';
+                
+                incorrectAnswers.forEach((item, index) => {
+                    // 밑줄을 시각화하고 정답 자리에는 정답 표시 (하늘색 600)
+                    const questionTextDisplay = item.question.replace('(_______)', `<span class="text-sky-600 font-extrabold underline">${item.answer}</span>`);
+                    
+                    listHtml += `
+                        <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+                            <p class="font-bold text-base mb-1 text-gray-800">문제 ${index + 1}. (원문): ${item.active}</p>
+                            <p class="mb-2 text-gray-600">질문: ${questionTextDisplay}</p>
+                            <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
+                            <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
+                        </div>
+                    `;
+                });
+                missedQuestionsContainer.innerHTML = listHtml;
+            } else {
+                 missedQuestionsContainer.innerHTML = '<p class="text-lg text-green-700 mt-4 font-semibold text-center py-4">🎉 모든 문제를 맞추셨습니다! 대단해요!</p>';
+            }
+
+            resultArea.classList.remove('hidden');
+        }
+
+        // 퀴즈 재시작 함수 (동일 문제 세트로)
+        function restartQuiz() {
+            startNewQuiz(false);
+        }
+        
+        // 신규 문제 풀기 함수 (새로운 문제 세트로)
+        function startNewSetQuiz() {
+            startNewQuiz(true);
+        }
+
+        // 인쇄 기능
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+
+        // 이벤트 리스너 등록
+        submitBtn.addEventListener('click', checkAnswer);
+        nextBtn.addEventListener('click', moveToNext);
+        restartBtn.addEventListener('click', restartQuiz); // '다시 풀기'
+        newQuizBtn.addEventListener('click', startNewSetQuiz); // '문제 더 풀기 (랜덤)'
+        
+        // Enter 키 로직: '다음 문제' 버튼의 표시 여부와 현재 포커스에 따라 동작 분리
+        document.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                
+                // 3. 최종 결과 화면일 때 -> '다시 풀기'로 동작
+                if (currentQuestionIndex >= currentQuizSet.length && resultArea.classList.contains('hidden') === false) {
+                     restartBtn.click(); // '다시 풀기' 버튼 클릭 동작
+                     return;
+                }
+                
+                // 1. '다음 문제' 버튼이 숨겨져 있다면 (아직 정답 확인 전) -> 정답 확인
+                if (nextBtn.classList.contains('hidden')) {
+                    // 객관식: 옵션 중 하나가 선택되었을 때
+                    if (document.querySelector('input[name="quiz-option"]:checked')) {
+                        checkAnswer();
+                    }
+                } 
+                // 2. '다음 문제' 버튼이 보인다면 (정답 확인 후) -> 다음 문제로 이동
+                else {
+                    moveToNext();  
+                }
+            }
+        });
+
+        // 퀴즈 초기 로드 (새로운 문제 세트로 시작)
+        window.onload = () => startNewQuiz(true);
+    </script>
+</body>
+</html>
