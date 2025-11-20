@@ -76,10 +76,7 @@
     <div id="quiz-app" class="quiz-container">
         <h1 class="text-3xl font-extrabold text-center text-sky-700 mb-6 border-b pb-3">다양한 시제의 수동태 퀴즈 (10문제)</h1>
 
-        <!-- 모드 선택 및 진행 상황 표시 --><div class="flex justify-between items-center mb-4">
-             <button id="mode-toggle-btn" class="py-2 px-4 text-sm bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition duration-150">
-                현재: 객관식 (변경: 주관식으로 보기)
-            </button>
+        <!-- 모드 선택 및 진행 상황 표시 --><div class="flex justify-end items-center mb-4">
             <span id="progress-text" class="text-lg font-semibold text-gray-600">문제 1 / 10</span>
         </div>
 
@@ -314,7 +311,7 @@
         const resultArea = document.getElementById('result-area');
         const finalScoreEl = document.getElementById('final-score');
         const questionArea = document.getElementById('question-area');
-        const modeToggleBtn = document.getElementById('mode-toggle-btn');
+        // const modeToggleBtn = document.getElementById('mode-toggle-btn'); // 제거됨
         const multipleChoiceArea = document.getElementById('multiple-choice-area');
         const blankUnderlineEl = document.getElementById('blank-underline');
         const missedQuestionsContainer = document.getElementById('missed-questions-container'); 
@@ -335,18 +332,13 @@
             return shuffled.slice(0, count);
         }
 
-        // 퀴즈 모드 전환 함수 (객관식 모드만 남기기 위해 함수는 존재하지만, UI에서는 버튼 제거됨)
-        function toggleQuizMode() {
-            // 이 함수는 주관식 모드 제거로 인해 더 이상 UI에서 호출되지 않습니다.
-        }
-
         // 새로운 퀴즈 시작 또는 기존 퀴즈 다시 시작
         function startNewQuiz(isNewSet = false) {
             currentQuestionIndex = 0;
             score = 0;
             isAnswerChecked = false;
             incorrectAnswers = []; 
-            quizMode = 'objective'; // 강제로 객관식 모드 유지
+            quizMode = 'objective'; 
 
             // '문제 더 풀기'인 경우에만 문제 세트를 새로 선택
             if (isNewSet || currentQuizSet.length === 0) {
@@ -354,14 +346,15 @@
             }
 
             // UI 요소 재설정
-            questionArea.classList.remove('hidden');
-            feedbackMessageEl.classList.remove('hidden', 'text-red-600', 'text-green-600');
-            feedbackMessageEl.textContent = '';
-            modeToggleBtn.classList.add('hidden'); // 모드 전환 버튼 제거
-            restartBtn.classList.add('hidden');
-            newQuizBtn.classList.add('hidden');
-            printBtn.classList.add('hidden'); 
-            resultArea.classList.add('hidden');
+            if (questionArea) questionArea.classList.remove('hidden');
+            if (feedbackMessageEl) feedbackMessageEl.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            if (feedbackMessageEl) feedbackMessageEl.textContent = '';
+            
+            // modeToggleBtn 제거됨
+            if (restartBtn) restartBtn.classList.add('hidden');
+            if (newQuizBtn) newQuizBtn.classList.add('hidden');
+            if (printBtn) printBtn.classList.add('hidden'); 
+            if (resultArea) resultArea.classList.add('hidden');
             
             loadQuestion();
         }
@@ -376,26 +369,27 @@
             const currentQuestion = currentQuizSet[currentQuestionIndex];
             
             // 상태 초기화
-            feedbackMessageEl.textContent = '';
-            submitBtn.classList.remove('hidden');
-            nextBtn.classList.add('hidden');
-            nextBtn.disabled = true;
+            if (feedbackMessageEl) feedbackMessageEl.textContent = '';
+            if (submitBtn) submitBtn.classList.remove('hidden');
+            if (nextBtn) nextBtn.classList.add('hidden');
+            if (nextBtn) nextBtn.disabled = true;
             isAnswerChecked = false;
             
             // 문제 내용 업데이트
-            progressText.textContent = `문제 ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
-            activeSentenceEl.textContent = currentQuestion.active;
+            if (progressText) progressText.textContent = `문제 ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
+            if (activeSentenceEl) activeSentenceEl.textContent = currentQuestion.active;
 
             // 밑줄 시각화 처리
-            const [prefix, suffix] = currentQuestion.question.split('(_______)');
-            // '수동태:' 접두사 제거
-            questionTextEl.innerHTML = `${prefix}<span class="question-text-line" id="blank-underline"></span>${suffix}`;
+            if (questionTextEl) {
+                const [prefix, suffix] = currentQuestion.question.split('(_______)');
+                questionTextEl.innerHTML = `${prefix}<span class="question-text-line" id="blank-underline"></span>${suffix}`;
+            }
             
             // 객관식만 렌더링
-            multipleChoiceArea.classList.remove('hidden');
+            if (multipleChoiceArea) multipleChoiceArea.classList.remove('hidden');
             if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
                 renderMultipleChoice(currentQuestion.options);
-            } else {
+            } else if (multipleChoiceArea) {
                 console.error("Error: Options array is missing or empty for the current question.");
                 multipleChoiceArea.innerHTML = '<p class="text-red-500">객관식 보기를 불러올 수 없습니다. (데이터 오류)</p>';
             }
@@ -403,6 +397,8 @@
 
         // 객관식 옵션 렌더링
         function renderMultipleChoice(options) {
+            if (!multipleChoiceArea) return;
+            
             multipleChoiceArea.innerHTML = '';
             const shuffledOptions = shuffleArray([...options]);
 
@@ -436,13 +432,16 @@
         // 정답 확인 함수
         function checkAnswer() {
             if (isAnswerChecked) return;
+            if (!submitBtn) return;
 
             const currentQuestionData = currentQuizSet[currentQuestionIndex];
             const selectedRadio = document.querySelector('input[name="quiz-option"]:checked');
             
             if (!selectedRadio) {
-                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
-                feedbackMessageEl.textContent = '답을 하나 선택해주세요.';
+                if(feedbackMessageEl) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                    feedbackMessageEl.textContent = '답을 하나 선택해주세요.';
+                }
                 return;
             }
             
@@ -458,20 +457,21 @@
             document.querySelectorAll('input[name="quiz-option"]').forEach(radio => radio.disabled = true);
             
             submitBtn.classList.add('hidden');
-            nextBtn.classList.remove('hidden');
-            nextBtn.disabled = false;
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.disabled = false;
+            }
             isAnswerChecked = true; 
 
             // 축약형/비축약형 모두 허용 로직 (객관식 모드에서는 이미 보기 옵션에 의해 처리됨)
             let isCorrect = (normalizedUserAnswer === normalizedCorrectAnswer);
-
-            // 주관식 로직이 없으므로, 객관식 보기의 값(value)을 정답과 비교합니다.
-            // 보기의 값에 축약형/비축약형이 모두 존재하도록 설정했으므로, 단순 비교만으로 충분합니다.
             
             if (isCorrect) {
                 score++;
-                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-green-600';
-                feedbackMessageEl.textContent = '✅ 정답입니다! 다음 문제로 넘어가세요.';
+                if (feedbackMessageEl) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-green-600';
+                    feedbackMessageEl.textContent = '✅ 정답입니다! 다음 문제로 넘어가세요.';
+                }
 
                 document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
                     const radioValue = radio.value.trim().toLowerCase().replace(/\s/g, '');
@@ -483,8 +483,10 @@
                 // 오답인 경우, 틀린 문제 배열에 추가
                 incorrectAnswers.push(currentQuestionData);
 
-                feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
-                feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-blue-600">'${correctAnswer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
+                if (feedbackMessageEl) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                    feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-blue-600">'${correctAnswer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
+                }
                 
                 document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
                     const label = radio.nextElementSibling;
@@ -503,7 +505,7 @@
         // 다음 문제로 이동
         function moveToNext() {
             if (!isAnswerChecked) {
-                feedbackMessageEl.textContent = '먼저 정답을 확인하세요.';
+                if (feedbackMessageEl) feedbackMessageEl.textContent = '먼저 정답을 확인하세요.';
                 return;
             }
             
@@ -513,44 +515,46 @@
 
         // 결과 표시 함수
         function showResults() {
-            questionArea.classList.add('hidden');
-            submitBtn.classList.add('hidden');
-            nextBtn.classList.add('hidden');
-            feedbackMessageEl.classList.add('hidden');
-            progressText.classList.add('hidden');
+            if (questionArea) questionArea.classList.add('hidden');
+            if (submitBtn) submitBtn.classList.add('hidden');
+            if (nextBtn) nextBtn.classList.add('hidden');
+            if (feedbackMessageEl) feedbackMessageEl.classList.add('hidden');
+            if (progressText) progressText.classList.add('hidden');
             
             // 결과 화면 관련 버튼 표시
-            restartBtn.classList.remove('hidden');
-            newQuizBtn.classList.remove('hidden'); 
-            printBtn.classList.remove('hidden'); 
+            if (restartBtn) restartBtn.classList.remove('hidden');
+            if (newQuizBtn) newQuizBtn.classList.remove('hidden'); 
+            if (printBtn) printBtn.classList.remove('hidden'); 
 
             const total = currentQuizSet.length;
-            finalScoreEl.textContent = `총 ${total}문제 중 ${score}점 획득하셨습니다! (${(score / total * 100).toFixed(0)}%)`;
+            if (finalScoreEl) finalScoreEl.textContent = `총 ${total}문제 중 ${score}점 획득하셨습니다! (${(score / total * 100).toFixed(0)}%)`;
 
             // 틀린 문제 목록 생성 및 표시
-            missedQuestionsContainer.innerHTML = '';
-            if (incorrectAnswers.length > 0) {
-                let listHtml = '<h3 class="text-xl font-bold text-gray-800 mt-8 mb-4 border-t pt-4 border-sky-200">틀린 문제 복습</h3>';
-                
-                incorrectAnswers.forEach((item, index) => {
-                    // 밑줄을 시각화하고 정답 자리에는 정답 표시 (하늘색 600)
-                    const questionTextDisplay = item.question.replace('(_______)', `<span class="text-sky-600 font-extrabold underline">${item.answer}</span>`);
+            if (missedQuestionsContainer) {
+                missedQuestionsContainer.innerHTML = '';
+                if (incorrectAnswers.length > 0) {
+                    let listHtml = '<h3 class="text-xl font-bold text-gray-800 mt-8 mb-4 border-t pt-4 border-sky-200">틀린 문제 복습</h3>';
                     
-                    listHtml += `
-                        <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
-                            <p class="font-bold text-base mb-1 text-gray-800">문제 ${index + 1}. (원문): ${item.active}</p>
-                            <p class="mb-2 text-gray-600">질문: ${questionTextDisplay}</p>
-                            <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
-                            <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
-                        </div>
-                    `;
-                });
-                missedQuestionsContainer.innerHTML = listHtml;
-            } else {
-                 missedQuestionsContainer.innerHTML = '<p class="text-lg text-green-700 mt-4 font-semibold text-center py-4">🎉 모든 문제를 맞추셨습니다! 대단해요!</p>';
+                    incorrectAnswers.forEach((item, index) => {
+                        // 밑줄을 시각화하고 정답 자리에는 정답 표시 (하늘색 600)
+                        const questionTextDisplay = item.question.replace('(_______)', `<span class="text-sky-600 font-extrabold underline">${item.answer}</span>`);
+                        
+                        listHtml += `
+                            <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <p class="font-bold text-base mb-1 text-gray-800">문제 ${index + 1}. (원문): ${item.active}</p>
+                                <p class="mb-2 text-gray-600">질문: ${questionTextDisplay}</p>
+                                <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
+                                <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
+                            </div>
+                        `;
+                    });
+                    missedQuestionsContainer.innerHTML = listHtml;
+                } else {
+                     missedQuestionsContainer.innerHTML = '<p class="text-lg text-green-700 mt-4 font-semibold text-center py-4">🎉 모든 문제를 맞추셨습니다! 대단해요!</p>';
+                }
             }
 
-            resultArea.classList.remove('hidden');
+            if (resultArea) resultArea.classList.remove('hidden');
         }
 
         // 퀴즈 재시작 함수 (동일 문제 세트로)
@@ -564,28 +568,30 @@
         }
 
         // 인쇄 기능
-        printBtn.addEventListener('click', () => {
-            window.print();
-        });
+        if(printBtn) {
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+        }
 
         // 이벤트 리스너 등록
-        submitBtn.addEventListener('click', checkAnswer);
-        nextBtn.addEventListener('click', moveToNext);
-        restartBtn.addEventListener('click', restartQuiz); // '다시 풀기'
-        newQuizBtn.addEventListener('click', startNewSetQuiz); // '문제 더 풀기 (랜덤)'
+        if(submitBtn) submitBtn.addEventListener('click', checkAnswer);
+        if(nextBtn) nextBtn.addEventListener('click', moveToNext);
+        if(restartBtn) restartBtn.addEventListener('click', restartQuiz); // '다시 풀기'
+        if(newQuizBtn) newQuizBtn.addEventListener('click', startNewSetQuiz); // '문제 더 풀기 (랜덤)'
         
         // Enter 키 로직: '다음 문제' 버튼의 표시 여부와 현재 포커스에 따라 동작 분리
         document.addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 
                 // 3. 최종 결과 화면일 때 -> '다시 풀기'로 동작
-                if (currentQuestionIndex >= currentQuizSet.length && resultArea.classList.contains('hidden') === false) {
-                     restartBtn.click(); // '다시 풀기' 버튼 클릭 동작
+                if (currentQuestionIndex >= currentQuizSet.length && (resultArea && resultArea.classList.contains('hidden') === false)) {
+                     if (restartBtn) restartBtn.click(); // '다시 풀기' 버튼 클릭 동작
                      return;
                 }
                 
                 // 1. '다음 문제' 버튼이 숨겨져 있다면 (아직 정답 확인 전) -> 정답 확인
-                if (nextBtn.classList.contains('hidden')) {
+                if (nextBtn && nextBtn.classList.contains('hidden')) {
                     // 객관식: 옵션 중 하나가 선택되었을 때
                     if (document.querySelector('input[name="quiz-option"]:checked')) {
                         checkAnswer();
