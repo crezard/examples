@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영어 전치사 용법 퀴즈</title>
+    <!-- Tailwind CSS CDN --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 사용 설정 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* 밝은 회색 배경 */
+        }
+        .quiz-container {
+            max-width: 640px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom style for the blank (빈칸 강조) */
+        .question-text-line {
+            display: inline-block;
+            font-weight: bold;
+            color: #c2410c; /* Deep Orange 700 for text */
+            
+            /* 밑줄 제거 및 빈칸 자리 확보 */
+            border-bottom: none !important;
+            padding-bottom: 0px !important;
+        }
+
+        /* 인쇄용 CSS 설정 */
+        @media print {
+            body {
+                background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .quiz-container {
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            /* 인쇄 시 숨길 요소 */
+            #progress-text, #question-area, #submit-btn, #next-btn, #feedback-message, #restart-btn, #new-quiz-btn, #print-btn, .flex.justify-between.items-center.gap-4 {
+                display: none !important;
+            }
+            /* 결과 영역을 깨끗하게 표시 */
+            #result-area {
+                display: block !important;
+                background-color: white !important;
+                border: none !important;
+                color: black !important;
+                padding: 0 !important;
+                margin-top: 0 !important;
+            }
+            #result-area p, #result-area h3 {
+                color: black !important;
+            }
+            /* 틀린 문제 복습 부분의 배경색을 회색으로 (인쇄용) */
+            #missed-questions-container .bg-gray-50 {
+                background-color: #eeeeee !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            #missed-questions-container .text-red-700, #missed-questions-container .text-green-700 {
+                color: #333 !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div id="quiz-app" class="quiz-container">
+        <h1 class="text-3xl font-extrabold text-center text-sky-700 mb-6 border-b pb-3">영어 전치사 용법 퀴즈 (10문제)</h1>
+
+        <!-- 모드 선택 및 진행 상황 표시 --><div class="flex justify-end items-center mb-4">
+            <span id="progress-text" class="text-lg font-semibold text-gray-600">문제 1 / 10</span>
+        </div>
+
+        <!-- 문제 영역 --><div id="question-area" class="bg-sky-50 p-6 rounded-lg mb-6">
+            <p class="text-sm text-sky-600 mb-2">다음 빈칸(`_______`)에 들어갈 **가장 적절한 전치사**를 선택하세요.</p>
+            <!-- active-sentence: 추가 지침 -->
+            <p id="active-sentence" class="text-base font-medium text-gray-800 mb-4 break-words"></p>
+            
+            <!-- 질문 텍스트: 폰트 크기 text-xl 로 줄임 --><p id="question-text" class="text-xl text-gray-800 mb-4 break-words font-extrabold">여기에 문장이 로드됩니다.</p>
+            
+            <!-- 주관식 입력 필드 (객관식이 디폴트이므로 기본 숨김) --><input type="text" id="user-answer" placeholder="여기에 정답을 입력하세요" 
+                   class="w-full p-3 border-2 border-sky-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 transition duration-150 ease-in-out hidden">
+
+            <!-- 객관식 옵션 영역 --><div id="multiple-choice-area" class="mt-4 flex flex-col space-y-3">
+                <!-- Radio buttons will be inserted here by JavaScript --></div>
+        </div>
+
+        <!-- 피드백 및 버튼 영역 --><div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div id="feedback-message" class="text-lg font-medium w-full sm:w-2/3 min-h-[1.5rem]"></div>
+            
+            <button id="submit-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-700 transition duration-300 ease-in-out">
+                정답 확인
+            </button>
+            <button id="next-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-300 ease-in-out hidden" disabled>
+                다음 문제
+            </button>
+            <!-- 퀴즈 진행 중에는 숨기고, 결과 화면에서 표시 --><button id="restart-btn" 
+                    class="w-full sm:w-1/3 py-3 px-6 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition duration-300 ease-in-out hidden">
+                다시 풀기
+            </button>
+        </div>
+
+        <!-- 최종 점수 영역 --><div id="result-area" class="mt-8 p-6 bg-white border-2 border-sky-300 rounded-xl shadow-lg hidden">
+            <p class="text-xl font-bold mb-2 text-sky-700 border-b pb-2">퀴즈 결과</p>
+            <p id="final-score" class="text-4xl font-extrabold text-sky-800 my-4 text-center"></p>
+            <!-- 틀린 문제 목록 표시 영역 --><div id="missed-questions-container"></div>
+            <!-- 버튼 그룹: '새 문제 풀기 (랜덤)' 버튼이 삭제되었습니다. -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                <!-- 새 문제 풀기 (랜덤) 버튼 삭제 -->
+                <button id="print-btn" class="w-full py-3 px-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-300 ease-in-out hidden">
+                    결과 인쇄하기
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // Quiz Data: 10 questions on English Preposition Usage
+        const masterQuizData = [
+            // 1. 시간 (특정 시각)
+            {
+                active: "특정 시각", 
+                question: "I usually wake up _______ seven o'clock.",
+                answer: "at",
+                explanation: "정확한 시각을 나타낼 때 'at'을 사용합니다.",
+                options: ["in", "on", "at", "by"] 
+            },
+            // 2. 시간 (특정 요일)
+            {
+                active: "특정 요일", 
+                question: "We have a test _______ Monday.",
+                answer: "on",
+                explanation: "특정 요일이나 날짜를 나타낼 때 'on'을 사용합니다.",
+                options: ["in", "on", "at", "for"] 
+            },
+            // 3. 장소 (넓은 공간)
+            {
+                active: "장소: 넓은 공간", 
+                question: "My family lives _______ Seoul.",
+                answer: "in",
+                explanation: "도시, 국가와 같은 넓은 공간에는 'in'을 사용합니다.",
+                options: ["at", "on", "in", "to"]
+            },
+            // 4. 수단/방법
+            {
+                active: "수단/방법", 
+                question: "I came to school _______ bus.",
+                answer: "by",
+                explanation: "교통수단이나 통신 수단처럼 방법을 나타낼 때 'by'를 사용합니다.",
+                options: ["on", "with", "by", "at"]
+            },
+            // 5. 소속/재료 (성질 변화 없음)
+            {
+                active: "재료의 성질 변화 없음", 
+                question: "This table is made _______ wood.",
+                answer: "of",
+                explanation: "재료가 가공되었으나 그 성질이 변하지 않았을 때 'of'를 사용합니다.",
+                options: ["of", "from", "by", "with"]
+            },
+            // 6. 기간
+            {
+                active: "기간의 길이", 
+                question: "I have studied English _______ three years.",
+                answer: "for",
+                explanation: "특정 기간('~동안')의 길이를 나타낼 때 'for'를 사용합니다.",
+                options: ["since", "at", "for", "during"]
+            },
+            // 7. 장소 (접촉)
+            {
+                active: "장소: 접촉", 
+                question: "The book is _______ the desk.",
+                answer: "on",
+                explanation: "표면 위에 접촉해 있을 때 'on'을 사용합니다.",
+                options: ["in", "at", "on", "over"]
+            },
+            // 8. 장소 (방향/도착)
+            {
+                active: "장소: 방향 또는 도착 지점", 
+                question: "She went _______ the park.",
+                answer: "to",
+                explanation: "어떤 장소로 이동하는 방향이나 도착 지점을 나타낼 때 'to'를 사용합니다.",
+                options: ["at", "to", "from", "in"]
+            },
+            // 9. 시간 (특정 시점 이래로)
+            {
+                active: "시간: 과거 특정 시점부터 계속", 
+                question: "He has worked here _______ 2020.",
+                answer: "since",
+                explanation: "현재완료와 함께 사용되어 과거의 특정 시점('2020')부터 현재까지 계속됨을 나타낼 때 'since'를 사용합니다.",
+                options: ["for", "during", "since", "at"]
+            },
+            // 10. 도구
+            {
+                active: "도구", 
+                question: "I cut the paper _______ scissors.",
+                answer: "with",
+                explanation: "도구(~을 가지고/이용하여)를 나타낼 때 'with'를 사용합니다.",
+                options: ["by", "with", "from", "of"]
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isAnswerChecked = false;
+        let incorrectAnswers = []; 
+        let currentQuizSet = []; 
+
+        // Get DOM elements
+        const progressText = document.getElementById('progress-text');
+        const activeSentenceEl = document.getElementById('active-sentence');
+        const questionTextEl = document.getElementById('question-text');
+        const userAnswerEl = document.getElementById('user-answer');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const submitBtn = document.getElementById('submit-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const resultArea = document.getElementById('result-area');
+        const finalScoreEl = document.getElementById('final-score');
+        const questionArea = document.getElementById('question-area');
+        const multipleChoiceArea = document.getElementById('multiple-choice-area');
+        const missedQuestionsContainer = document.getElementById('missed-questions-container'); 
+        const printBtn = document.getElementById('print-btn'); 
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Selects random questions (up to 10)
+        function selectRandomQuestions(data, count) {
+            const shuffled = shuffleArray([...data]);
+            return shuffled.slice(0, count);
+        }
+
+        // Starts a new quiz or restarts the existing one
+        function startNewQuiz() { 
+            currentQuestionIndex = 0;
+            score = 0;
+            isAnswerChecked = false;
+            incorrectAnswers = []; 
+
+            currentQuizSet = selectRandomQuestions(masterQuizData, 10);
+
+            // Reset UI elements
+            if (questionArea) questionArea.classList.remove('hidden');
+            if (feedbackMessageEl) feedbackMessageEl.classList.remove('hidden', 'text-red-600', 'text-green-600');
+            if (feedbackMessageEl) feedbackMessageEl.textContent = '';
+            
+            if (restartBtn) restartBtn.classList.add('hidden');
+            if (printBtn) printBtn.classList.add('hidden'); 
+            if (resultArea) resultArea.classList.add('hidden');
+            if (progressText) progressText.classList.remove('hidden');
+
+            loadQuestion();
+        }
+
+        // Loads the current question
+        function loadQuestion() {
+            if (currentQuestionIndex >= currentQuizSet.length) {
+                showResults();
+                return;
+            }
+
+            const currentQuestion = currentQuizSet[currentQuestionIndex];
+            
+            // Reset state
+            if (feedbackMessageEl) feedbackMessageEl.textContent = '';
+            if (submitBtn) submitBtn.classList.remove('hidden');
+            if (nextBtn) nextBtn.classList.add('hidden');
+            if (nextBtn) nextBtn.disabled = true;
+            isAnswerChecked = false;
+            
+            // Update question content
+            if (progressText) progressText.textContent = `문제 ${currentQuestionIndex + 1} / ${currentQuizSet.length}`;
+            
+            // active: 지침이 여기에 표시됩니다.
+            if (activeSentenceEl) activeSentenceEl.textContent = currentQuestion.active;
+
+            // Visualizing the blank using the '_______' marker
+            if (questionTextEl) {
+                // '_______'를 찾아서 강조된 span 태그로 대체합니다.
+                const formattedQuestion = currentQuestion.question.replace('_______', '<span class="question-text-line">_______</span>');
+                questionTextEl.innerHTML = formattedQuestion;
+            }
+            
+            // Render multiple choice options
+            if (multipleChoiceArea) multipleChoiceArea.classList.remove('hidden');
+            if (currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+                renderMultipleChoice(currentQuestion.options);
+            } else if (multipleChoiceArea) {
+                console.error("Error: Options array is missing or empty for the current question.");
+                multipleChoiceArea.innerHTML = '<p class="text-red-500">객관식 보기를 불러올 수 없습니다. (데이터 오류)</p>';
+            }
+        }
+
+        // Renders multiple choice options
+        function renderMultipleChoice(options) {
+            if (!multipleChoiceArea) return;
+            
+            multipleChoiceArea.innerHTML = '';
+            const shuffledOptions = shuffleArray([...options]);
+
+            shuffledOptions.forEach((option, index) => {
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.id = `option-${index}`;
+                radio.name = 'quiz-option';
+                radio.value = option;
+                radio.className = 'w-5 h-5 text-sky-600 focus:ring-sky-500 border-gray-300';
+
+                const label = document.createElement('label');
+                label.htmlFor = `option-${index}`;
+                label.textContent = option;
+                label.className = 'ml-3 text-lg text-gray-700 cursor-pointer w-full p-2 rounded-lg border border-gray-200 hover:bg-sky-100 transition duration-150 flex items-center';
+
+                const div = document.createElement('div');
+                div.className = 'flex items-center';
+                div.appendChild(radio);
+                div.appendChild(label);
+                
+                label.addEventListener('click', () => {
+                    // Check radio button on label click for better mobile touch experience
+                    radio.checked = true;
+                });
+
+                multipleChoiceArea.appendChild(div);
+            });
+        }
+
+        // Checks the answer
+        function checkAnswer() {
+            if (isAnswerChecked) return;
+            if (!submitBtn) return;
+
+            const currentQuestionData = currentQuizSet[currentQuestionIndex];
+            const selectedRadio = document.querySelector('input[name="quiz-option"]:checked');
+            
+            if (!selectedRadio) {
+                if(feedbackMessageEl) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                    feedbackMessageEl.textContent = '답을 하나 선택해주세요.';
+                }
+                return;
+            }
+            
+            const userAnswer = selectedRadio.value.trim();
+            const correctAnswerFull = currentQuestionData.answer.trim();
+            const explanation = currentQuestionData.explanation;
+
+            // **중요:** 정답 비교 시 사용자의 답변과 정답 데이터 모두 소문자로 정규화하여 대소문자 문제 해결
+            const normalizedCorrectAnswer = correctAnswerFull.toLowerCase().replace(/\s/g, '');
+            const normalizedUserAnswer = userAnswer.toLowerCase().replace(/\s/g, '');
+
+            let isCorrect = (normalizedUserAnswer === normalizedCorrectAnswer);
+            
+            // 객관식 보기는 비활성화
+            document.querySelectorAll('input[name="quiz-option"]').forEach(radio => radio.disabled = true);
+            
+            submitBtn.classList.add('hidden');
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.disabled = false;
+            }
+            isAnswerChecked = true; 
+            
+            if (isCorrect) {
+                score++;
+                if (feedbackMessageEl) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-green-600';
+                    feedbackMessageEl.textContent = '✅ 정답입니다! 다음 문제로 넘어가세요.';
+                }
+
+                document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
+                    const radioValue = radio.value.trim().toLowerCase().replace(/\s/g, '');
+                    if (radioValue === normalizedCorrectAnswer) { // 정규화된 값으로 비교
+                        radio.nextElementSibling.classList.add('bg-green-200', 'border-green-500');
+                    }
+                });
+            } else {
+                // 오답인 경우, 틀린 문제 배열에 추가
+                incorrectAnswers.push(currentQuestionData);
+
+                if (feedbackMessageEl) {
+                    feedbackMessageEl.className = 'text-lg font-medium w-full sm:w-2/3 text-red-600';
+                    // 틀린 경우, 원래의 정확한 대소문자 정답을 보여줍니다.
+                    const displayCorrectAnswer = correctAnswerFull;
+                    
+                    feedbackMessageEl.innerHTML = `❌ 오답입니다. 정답: <span class="font-extrabold text-sky-600">'${displayCorrectAnswer}'</span><br><span class="text-sm text-gray-700">💡 해설: ${explanation}</span>`;
+                }
+                
+                document.querySelectorAll('input[name="quiz-option"]').forEach(radio => {
+                    const label = radio.nextElementSibling;
+                    const radioValue = radio.value.trim().toLowerCase().replace(/\s/g, '');
+                    
+                    if (radio.checked) {
+                        label.classList.add('bg-red-200', 'border-red-500'); 
+                    } 
+                    if (radioValue === normalizedCorrectAnswer) { // 정규화된 값으로 비교
+                        label.classList.add('bg-sky-200', 'border-sky-500'); // 정답은 하늘색으로 표시
+                    }
+                });
+            }
+        }
+
+        // Moves to the next question
+        function moveToNext() {
+            if (!isAnswerChecked) {
+                if (feedbackMessageEl) feedbackMessageEl.textContent = '먼저 정답을 확인하세요.';
+                return;
+            }
+            
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        // Displays results
+        function showResults() {
+            if (questionArea) questionArea.classList.add('hidden');
+            if (submitBtn) submitBtn.classList.add('hidden');
+            if (nextBtn) nextBtn.classList.add('hidden');
+            if (feedbackMessageEl) feedbackMessageEl.classList.add('hidden');
+            if (progressText) progressText.classList.add('hidden');
+            
+            // 결과 화면 관련 버튼 표시
+            if (restartBtn) restartBtn.classList.remove('hidden');
+            if (printBtn) printBtn.classList.remove('hidden'); 
+
+            const total = currentQuizSet.length;
+            if (finalScoreEl) finalScoreEl.textContent = `총 ${total}문제 중 ${score}점 획득하셨습니다! (${(score / total * 100).toFixed(0)}%)`;
+
+            // 틀린 문제 목록 생성 및 표시
+            if (missedQuestionsContainer) {
+                missedQuestionsContainer.innerHTML = '';
+                if (incorrectAnswers.length > 0) {
+                    let listHtml = '<h3 class="text-xl font-bold text-gray-800 mt-8 mb-4 border-t pt-4 border-sky-200">틀린 문제 복습</h3>';
+                    
+                    incorrectAnswers.forEach((item, index) => {
+                        // 밑줄을 시각화하고 정답 자리에는 정답 표시 (하늘색 600)
+                        const questionTextDisplay = item.question.replace('_______', `<span class="text-sky-600 font-extrabold underline">${item.answer}</span>`);
+                        
+                        listHtml += `
+                            <div class="p-4 mb-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <p class="font-bold text-lg mb-2 text-gray-800">문제 ${index + 1}. 문장: ${questionTextDisplay}</p>
+                                <p class="text-green-700 font-semibold mt-2">✅ 정답: <span class="font-extrabold">${item.answer}</span></p>
+                                <p class="text-sm text-gray-600 mt-2 border-t border-gray-300 pt-2">💡 해설: ${item.explanation}</p>
+                            </div>
+                        `;
+                    });
+                    missedQuestionsContainer.innerHTML = listHtml;
+                } else {
+                     missedQuestionsContainer.innerHTML = '<p class="text-lg text-green-700 mt-4 font-semibold text-center py-4">🎉 모든 문제를 맞추셨습니다! 대단해요!</p>';
+                }
+            }
+
+            if (resultArea) resultArea.classList.remove('hidden');
+        }
+
+        // 퀴즈 재시작 함수 (동일 문제 세트로)
+        function restartQuiz() {
+            startNewQuiz();
+        }
+        
+        // 새 문제 풀기 함수 (새로운 문제 세트로)
+        function startNewSetQuiz() {
+            startNewQuiz(true);
+        }
+
+        // 인쇄 기능
+        if(printBtn) {
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+        }
+
+        // 이벤트 리스너 등록
+        if(submitBtn) submitBtn.addEventListener('click', checkAnswer);
+        if(nextBtn) nextBtn.addEventListener('click', moveToNext);
+        if(restartBtn) restartBtn.addEventListener('click', restartQuiz); // '다시 풀기'
+        
+        // Enter 키 로직: '다음 문제' 버튼의 표시 여부와 현재 포커스에 따라 동작 분리
+        if(document.addEventListener) { 
+            document.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    
+                    // 3. 최종 결과 화면일 때 -> '다시 풀기'로 동작
+                    if (currentQuestionIndex >= currentQuizSet.length && (resultArea && resultArea.classList.contains('hidden') === false)) {
+                         if (restartBtn) restartBtn.click(); // '다시 풀기' 버튼 클릭 동작
+                         return;
+                    }
+                    
+                    // 1. '다음 문제' 버튼이 숨겨져 있다면 (아직 정답 확인 전) -> 정답 확인
+                    if (nextBtn && nextBtn.classList.contains('hidden')) {
+                        // 객관식: 옵션 중 하나가 선택되었을 때
+                        if (document.querySelector('input[name="quiz-option"]:checked')) {
+                            checkAnswer();
+                        }
+                    } 
+                    // 2. '다음 문제' 버튼이 보인다면 (정답 확인 후) -> 다음 문제로 이동
+                    else {
+                        moveToNext();  
+                    }
+                }
+            });
+        }
+
+        // 퀴즈 초기 로드 (새로운 문제 세트로 시작)
+        window.onload = () => startNewQuiz();
+    </script>
+</body>
+</html>
